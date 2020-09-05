@@ -1,4 +1,5 @@
-use hpydev::cli;
+use hpydev::{cli,go};
+use std::convert::TryInto;
 
 async fn run() -> Result<(), anyhow::Error> {
     use structopt::StructOpt;
@@ -9,8 +10,10 @@ async fn run() -> Result<(), anyhow::Error> {
     match opt.cmd {
         cli::SubCommand::Go(go) => {
             match go.action {
-                cli::go::Action::Install(_opt) => {
-                    tracing::info!("install...");
+                cli::go::Action::Install(opt) => {
+                   go::Operator::new()
+                       .install(opt.try_into()?)
+                       .await?;
                 }
                 cli::go::Action::Uninstall(_opt) => {
                     tracing::info!("uninstall...");
