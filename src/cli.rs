@@ -1,3 +1,5 @@
+pub mod go;
+
 use structopt::{clap, StructOpt};
 
 #[derive(StructOpt, Debug)]
@@ -23,4 +25,12 @@ pub struct Opt {
         parse(from_occurrences)
     )]
     pub verbose: u8,
+
+    #[structopt(subcommand)]
+    pub cmd: SubCommand,
+}
+
+#[derive(StructOpt, Debug,Clone)]
+pub enum SubCommand {
+    Go(crate::cli::go::Go),
 }

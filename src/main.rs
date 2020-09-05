@@ -6,7 +6,22 @@ async fn run() -> Result<(), anyhow::Error> {
 
     init_logger(opt.verbose)?;
 
-    tracing::info!("running...");
+    match opt.cmd {
+        cli::SubCommand::Go(go) => {
+            match go.action {
+                cli::go::Action::Install(_opt) => {
+                    tracing::info!("install...");
+                }
+                cli::go::Action::Uninstall(_opt) => {
+                    tracing::info!("uninstall...");
+                }
+                cli::go::Action::Upgrade(_opt) => {
+                    tracing::info!("upgrade...");
+                }
+            }
+        }
+    }
+
     Ok(())
 }
 
