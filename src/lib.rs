@@ -2,12 +2,11 @@ pub mod cli;
 pub mod go;
 
 mod config;
-mod util;
-mod semver;
 mod prelude;
+mod semver;
+mod util;
 
 pub enum Os {
     Darwin,
     Linux,
 }
-

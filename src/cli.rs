@@ -30,7 +30,7 @@ pub struct Opt {
     pub cmd: SubCommand,
 }
 
-#[derive(StructOpt, Debug,Clone)]
+#[derive(StructOpt, Debug, Clone)]
 pub enum SubCommand {
     Go(crate::cli::go::Go),
 }

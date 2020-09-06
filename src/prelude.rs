@@ -1,1 +1,1 @@
-pub type Result<T> = core::result::Result<T,anyhow::Error>;
+pub type Result<T> = core::result::Result<T, anyhow::Error>;

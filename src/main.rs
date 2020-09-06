@@ -1,4 +1,4 @@
-use hpydev::{cli,go};
+use hpydev::{cli, go};
 use std::convert::TryInto;
 
 async fn run() -> Result<(), anyhow::Error> {
@@ -8,21 +8,17 @@ async fn run() -> Result<(), anyhow::Error> {
     init_logger(opt.verbose)?;
 
     match opt.cmd {
-        cli::SubCommand::Go(go) => {
-            match go.action {
-                cli::go::Action::Install(opt) => {
-                   go::Operator::new()
-                       .install(opt.try_into()?)
-                       .await?;
-                }
-                cli::go::Action::Uninstall(_opt) => {
-                    tracing::info!("uninstall...");
-                }
-                cli::go::Action::Upgrade(_opt) => {
-                    tracing::info!("upgrade...");
-                }
+        cli::SubCommand::Go(go) => match go.action {
+            cli::go::Action::Install(opt) => {
+                go::Operator::new().install(opt.try_into()?).await?;
             }
-        }
+            cli::go::Action::Uninstall(_opt) => {
+                tracing::info!("uninstall...");
+            }
+            cli::go::Action::Upgrade(_opt) => {
+                tracing::info!("upgrade...");
+            }
+        },
     }
 
     Ok(())
