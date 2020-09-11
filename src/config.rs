@@ -9,5 +9,7 @@ pub mod go {
 
     lazy_static! {
         pub static ref ARCHIVE_URL: Url = Url::parse("https://golang.org/dl").unwrap();
+        // https://golang.org/dl/go1.15.2.darwin-amd64.tar.gz
+        // https://golang.org/dl/go1.15.1.darwin-amd64.tar.gz
     }
 }

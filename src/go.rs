@@ -55,28 +55,43 @@ impl Operator {
             .unwrap()
             .push(make_archive_segment(&param.version, &os, &param.arch).as_str());
 
-        info!("{:#?}", endpoint);
+        // current決め打ち。tmp directory作成してそっちに作ったほうが行儀いいかも。
+        let archive_dest = "./go_archive.tar.gz";
 
-        let mut stream = reqwest::get(endpoint).await?.bytes_stream();
+        let response = reqwest::get(endpoint.clone()).await?;
+        if let Err(e) = response.error_for_status_ref() {
+            return Err(e.into())
+        }
+
+        let mut stream = match  reqwest::get(endpoint.clone()).await?.error_for_status() {
+           Ok(res) => res.bytes_stream(),
+            Err(err) => return Err(err.into()),
+        };
 
         use tokio::io::AsyncWriteExt;
         use tokio::stream::StreamExt;
         let mut file = tokio::fs::OpenOptions::new()
             .write(true)
             .create(true)
-            .open(param.dest)
+            .open(archive_dest)
             .await?;
+
+        info!("successfully download {} to {}", endpoint, archive_dest);
 
         while let Some(Ok(v)) = stream.next().await {
             file.write_all(&v).await?;
         }
+
+        util::extract_tar_gz(archive_dest, param.dest.as_path()).await?;
+
+        // TODO: remove archive file
 
         Ok(())
     }
 }
 
 //
-// ex. https://golang.org/dl/go1.15.1.darwin-amd64.tar.gz
+// ex. https://golang.org/dl/go1.15.1.darwin-amd64.tar.gz の最後のsegmentを作る
 fn make_archive_segment(ver: &SemanticVersion, os: &Os, arch: &Arch) -> String {
     let os = match os {
         Os::Darwin => "darwin",
@@ -92,4 +107,27 @@ fn make_archive_segment(ver: &SemanticVersion, os: &Os, arch: &Arch) -> String {
         os = os,
         arch = arch,
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn test_make_archive_segment() {
+        // (arg, expect)
+        vec![(
+            (
+                SemanticVersion::from_str("v1.15.0").unwrap(),
+                &Os::Darwin,
+                &Arch::Amd64,
+            ),
+            "go1.15.0.darwin-amd64.tar.gz",
+        )]
+        .into_iter()
+        .for_each(|t| {
+            let arg = t.0;
+            let expect = String::from(t.1);
+            assert_eq!(make_archive_segment(&arg.0, arg.1, arg.2), expect);
+        });
+    }
 }
