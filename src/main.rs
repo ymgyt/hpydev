@@ -12,8 +12,8 @@ async fn run() -> Result<(), anyhow::Error> {
             cli::go::Action::Install(opt) => {
                 go::Operator::new().install(opt.try_into()?).await?;
             }
-            cli::go::Action::Uninstall(_opt) => {
-                tracing::info!("uninstall...");
+            cli::go::Action::Uninstall(opt) => {
+                go::Operator::new().uninstall(opt.try_into()?).await?;
             }
             cli::go::Action::Upgrade(_opt) => {
                 tracing::info!("upgrade...");

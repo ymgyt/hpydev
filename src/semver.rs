@@ -23,7 +23,7 @@ impl str::FromStr for SemanticVersion {
     type Err = String;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let v = s.trim_start_matches('v');
-        let v: Vec<&str> = v.split(".").collect();
+        let v: Vec<&str> = v.split('.').collect();
         if v.len() < 3 {
             return Err(String::from("invalid format. <major>.<minor>.<path>"));
         }

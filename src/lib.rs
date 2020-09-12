@@ -1,4 +1,5 @@
 pub mod cli;
+pub mod fsops;
 pub mod go;
 
 mod config;

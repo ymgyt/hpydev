@@ -1,4 +1,4 @@
-use crate::{cli, config, prelude::*, semver::SemanticVersion, util, Os};
+use crate::{cli, config, fsops, prelude::*, semver::SemanticVersion, util, Os};
 use std::{convert::TryFrom, path, str::FromStr};
 use tracing::{debug, info};
 
@@ -28,7 +28,7 @@ pub struct InstallParam {
 
 impl TryFrom<cli::go::Install> for InstallParam {
     type Error = anyhow::Error;
-    fn try_from(v: cli::go::Install) -> std::result::Result<Self, Self::Error> {
+    fn try_from(v: cli::go::Install) -> core::result::Result<Self, Self::Error> {
         Ok(Self {
             version: v
                 .version
@@ -40,9 +40,31 @@ impl TryFrom<cli::go::Install> for InstallParam {
     }
 }
 
+#[derive(Debug)]
+pub struct UninstallParam {
+    go_root: path::PathBuf,
+    skip_remove_prompt: bool,
+}
+
+impl TryFrom<cli::go::Uninstall> for UninstallParam {
+    type Error = anyhow::Error;
+    fn try_from(v: cli::go::Uninstall) -> core::result::Result<Self, Self::Error> {
+        Ok(Self {
+            go_root: v.go_root,
+            skip_remove_prompt: v.skip_prompt,
+        })
+    }
+}
+
+impl Default for Operator {
+    fn default() -> Self {
+        Self {}
+    }
+}
+
 impl Operator {
     pub fn new() -> Self {
-        Self {}
+        Operator::default()
     }
 
     pub async fn install(self, param: InstallParam) -> Result<()> {
@@ -58,13 +80,9 @@ impl Operator {
         // current決め打ち。tmp directory作成してそっちに作ったほうが行儀いいかも。
         let archive_dest = "./go_archive.tar.gz";
 
-        let response = reqwest::get(endpoint.clone()).await?;
-        if let Err(e) = response.error_for_status_ref() {
-            return Err(e.into())
-        }
-
-        let mut stream = match  reqwest::get(endpoint.clone()).await?.error_for_status() {
-           Ok(res) => res.bytes_stream(),
+        info!("downloading {} ...", &endpoint);
+        let mut stream = match reqwest::get(endpoint.clone()).await?.error_for_status() {
+            Ok(res) => res.bytes_stream(),
             Err(err) => return Err(err.into()),
         };
 
@@ -76,15 +94,42 @@ impl Operator {
             .open(archive_dest)
             .await?;
 
-        info!("successfully download {} to {}", endpoint, archive_dest);
-
         while let Some(Ok(v)) = stream.next().await {
             file.write_all(&v).await?;
         }
 
-        util::extract_tar_gz(archive_dest, param.dest.as_path()).await?;
+        info!("successfully download {} to {}", endpoint, archive_dest);
 
-        // TODO: remove archive file
+        fsops::extract_tar_gz(archive_dest, param.dest.as_path()).await?;
+        fsops::remove(archive_dest).await?;
+
+        // TODO: go processを表現して、Go::new().version()とかしたい
+        info!("go successfully installed. try $(which go) version");
+
+        Ok(())
+    }
+
+    pub async fn uninstall(self, param: UninstallParam) -> Result<()> {
+        debug!("{:#?}", param);
+
+        if !param.skip_remove_prompt {
+            let ok = dialoguer::Confirm::new()
+                .with_prompt(format!(
+                    "delete {:?} recursively",
+                    param.go_root.as_path().as_os_str()
+                ))
+                .interact()?;
+            if !ok {
+                info!("canceled");
+                return Ok(());
+            }
+        }
+
+        // TODO: ここでgo clean -cache等のcleanup系のタスクを実行してもいいかも
+        // TODO: go_rootにgoがinstallされているか確認したい
+
+        fsops::remove_dir_recursively(param.go_root.as_path()).await?;
+        info!("successfully delete {:?}", param.go_root);
 
         Ok(())
     }

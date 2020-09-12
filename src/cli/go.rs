@@ -39,7 +39,18 @@ pub struct Install {
 
 #[derive(StructOpt, Debug, Clone)]
 #[structopt(about = "uninstall golang")]
-pub struct Uninstall {}
+pub struct Uninstall {
+    // install先のdetect機能実装したらOptionにする
+    #[structopt(
+        long = "root",
+        alias = "go-root",
+        help = "installed go root directory."
+    )]
+    pub go_root: PathBuf,
+
+    #[structopt(long = "yes", short = "y", help = "skip remove confirmation prompt.")]
+    pub skip_prompt: bool,
+}
 
 #[derive(StructOpt, Debug, Clone)]
 #[structopt(about = "upgrade golang version")]
