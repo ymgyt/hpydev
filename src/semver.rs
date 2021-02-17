@@ -4,7 +4,7 @@ use std::{fmt, str};
 pub struct SemanticVersion {
     major: u64,
     minor: u64,
-    patch: u64,
+    patch: Option<u64>,
     pre_release: Option<PreRelease>,
     build_metadata: Option<BuildMetadata>,
 }
@@ -24,14 +24,14 @@ impl str::FromStr for SemanticVersion {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let v = s.trim_start_matches('v');
         let v: Vec<&str> = v.split('.').collect();
-        if v.len() < 3 {
+        if v.len() < 2 {
             return Err(String::from("invalid format. <major>.<minor>.<path>"));
         }
         // TODO: handle error
         let (major, minor, patch) = (
             v[0].parse().unwrap(),
             v[1].parse().unwrap(),
-            v[2].parse().unwrap(),
+            v.get(2).map(|patch| patch.parse().unwrap()),
         );
 
         // TODO: handle pre_release & metadata
@@ -50,7 +50,7 @@ impl Default for SemanticVersion {
         Self {
             major: 0,
             minor: 1,
-            patch: 0,
+            patch: Some(0),
             pre_release: None,
             build_metadata: None,
         }
@@ -70,7 +70,11 @@ impl PartialEq for SemanticVersion {
 impl fmt::Display for SemanticVersion {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         // TODO: handle pre_release & metadata
-        write!(f, "v{}.{}.{}", self.major, self.minor, self.patch)
+        write!(f, "v{}.{}", self.major, self.minor)?;
+        if let Some(patch) = self.patch {
+            write!(f, ".{}", patch)?;
+        }
+        Ok(())
     }
 }
 
@@ -91,7 +95,7 @@ mod test {
             Some(SemanticVersion {
                 major: 0,
                 minor: 1,
-                patch: 2,
+                patch: Some(2),
                 ..Default::default()
             })
         );
@@ -101,7 +105,16 @@ mod test {
             Some(SemanticVersion {
                 major: 0,
                 minor: 1,
-                patch: 2,
+                patch: Some(2),
+                ..Default::default()
+            })
+        );
+        assert_eq!(
+            "0.1".parse::<SemanticVersion>().ok(),
+            Some(SemanticVersion {
+                major: 0,
+                minor: 1,
+                patch: None,
                 ..Default::default()
             })
         );
@@ -112,10 +125,19 @@ mod test {
         let v = SemanticVersion {
             major: 1,
             minor: 2,
-            patch: 3,
+            patch: Some(3),
             ..Default::default()
         };
 
-        assert_eq!(v.format_without_prefix(), "1.2.3",);
+        assert_eq!(v.format_without_prefix(), "1.2.3", );
+
+        let v = SemanticVersion {
+            major: 1,
+            minor: 2,
+            patch: None,
+            ..Default::default()
+        };
+
+        assert_eq!(v.format_without_prefix(), "1.2", );
     }
 }
